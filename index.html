@@ -17,7 +17,7 @@
         </style>
     </head>
     <body style="margin: 0;background-color: black;">
-        <h1 style="color:#61efff;margin-top: 0;margin-bottom: 0;text-align: center;">Arduino Code at the end of this webpage</h1>
+        <h1 style="color:chartreuse;margin-top: 0;margin-bottom: 0;text-align: center;">Arduino Code at the end of this webpage</h1>
 
         <!--[if lt IE 7]>
             <p class="browsehappy">You are using an <strong>outdated</strong> browser. Please <a href="#">upgrade your browser</a> to improve your experience.</p>
@@ -59,57 +59,61 @@
                 float pwms[4]={0,0,0,0};          &nbsp;&nbsp;&nbsp;&nbsp;// Anchos iniciales<br>
                 String incoming;                  &nbsp;&nbsp;&nbsp;&nbsp;// Variable para recibir los movimientos a realizar<br>
                 String direcciones;               &nbsp;&nbsp;&nbsp;&nbsp;// Variable para almacenar los movimientos a realizar<br>
-                void setup(){                     &nbsp;&nbsp;&nbsp;&nbsp;// FUncion de inicializacion<br>
-                Serial1.begin(9600);            &nbsp;&nbsp;&nbsp;&nbsp;// Velocidad de 9600 baudios para modulo BT en Serial1(RX19, TX18)<br>
-                DDRA |= B11111111;              &nbsp;&nbsp;&nbsp;&nbsp;// Configuracion de pines de direcion de motores como salidas<br>
-                /*<br>
+                <br>
+                //------------------------------------------------------------------------------------------- <br>
+                void setup(){                     &nbsp;&nbsp;&nbsp;&nbsp;// Funcion de inicializacion<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Serial1.begin(9600);            &nbsp;&nbsp;&nbsp;&nbsp;// Velocidad de 9600 baudios para modulo BT en Serial1(RX19, TX18)<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;DDRA |= B11111111;              &nbsp;&nbsp;&nbsp;&nbsp;// Configuracion de pines de direcion de motores como salidas<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/*<br>
                 &nbsp;&nbsp;&nbsp;&nbsp;El comando de registros DDRx, donde x es el registro a manipular, configura los pines como<br>
                 &nbsp;&nbsp;&nbsp;&nbsp;salidas si los bits se ponen en 1 y como entradas si se ponen en 0, los valores iniciales<br>
                 &nbsp;&nbsp;&nbsp;&nbsp;son 0, por lo tanto no es necesario configurar entradas. Al colocar los 1 y 0 se inicia<br>
                 &nbsp;&nbsp;&nbsp;&nbsp;colocando B. El orden de los bits en AVRATmega2560 es [0,1,2,3,4,5,6,7]. Se debe<br>
                 &nbsp;&nbsp;&nbsp;&nbsp;revisar a que pines de arduino corresponden los pines del micro que se quieran configurar.<br>
-                */<br>
-                for(int i=0;i<4; i++){         &nbsp;&nbsp;&nbsp;&nbsp;// Para cada sensor<br>
-                    &nbsp;&nbsp;&nbsp;&nbsp;est[i]=digitalRead(enc[i]);  &nbsp;&nbsp;&nbsp;&nbsp;// Se lee el estado actual de los motores<br>
-                    &nbsp;&nbsp;&nbsp;&nbsp;last[i]=est[i];              &nbsp;&nbsp;&nbsp;&nbsp;// Las lecturas se establecen como el estado anterior<br>
-                }<br>
-                DDRG |= B00000100;             &nbsp;&nbsp;&nbsp;&nbsp;// -Configuracion de los pines pwm<br>
-                DDRE |= B00010000;             &nbsp;&nbsp;&nbsp;&nbsp;// PG5, PE3, PH3 y PH4 como salidas,<br>
-                DDRH |= B00011000;             &nbsp;&nbsp;&nbsp;&nbsp;// es decir pines 4,5,6,7 de arduino.<br>
-                PORTG &= B11111011;            &nbsp;&nbsp;&nbsp;&nbsp;// -Poner en bajolos pines<br>
-                PORTE &= B11101111;            &nbsp;&nbsp;&nbsp;&nbsp;// 4,5,6,7 de arduino, es decir<br>
-                PORTH &= B11100111;            &nbsp;&nbsp;&nbsp;&nbsp;// PG5, PE3, PH3, PH4 del micro.<br>
-                /*<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*/<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for(int i=0;i<4; i++){         &nbsp;&nbsp;&nbsp;&nbsp;// Para cada sensor<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;est[i]=digitalRead(enc[i]);  &nbsp;&nbsp;&nbsp;&nbsp;// Se lee el estado actual de los motores<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;last[i]=est[i];              &nbsp;&nbsp;&nbsp;&nbsp;// Las lecturas se establecen como el estado anterior<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;DDRG |= B00000100;             &nbsp;&nbsp;&nbsp;&nbsp;// -Configuracion de los pines pwm<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;DDRE |= B00010000;             &nbsp;&nbsp;&nbsp;&nbsp;// PG5, PE3, PH3 y PH4 como salidas,<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;DDRH |= B00011000;             &nbsp;&nbsp;&nbsp;&nbsp;// es decir pines 4,5,6,7 de arduino.<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;PORTG &= B11111011;            &nbsp;&nbsp;&nbsp;&nbsp;// -Poner en bajolos pines<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;PORTE &= B11101111;            &nbsp;&nbsp;&nbsp;&nbsp;// 4,5,6,7 de arduino, es decir<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;PORTH &= B11100111;            &nbsp;&nbsp;&nbsp;&nbsp;// PG5, PE3, PH3, PH4 del micro.<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/*<br>
                 &nbsp;&nbsp;&nbsp;&nbsp;El comando de registros PORTx, donde x es el registro a manipular, se usa para poner<br>
                 &nbsp;&nbsp;&nbsp;&nbsp;los pines en 1 o 0 usando compuerta and u or<br>
-                */<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*/<br>
                 }<br>
                 void loop(){                           &nbsp;&nbsp;&nbsp;&nbsp;// Funcion principal<br>
-                if(Serial1.available()>0){           &nbsp;&nbsp;&nbsp;&nbsp;// Si hay conexiones entrantes<br>
-                    &nbsp;&nbsp;&nbsp;&nbsp;incoming = Serial1.readString();   &nbsp;&nbsp;&nbsp;&nbsp;// Se lee una linea<br>
-                    &nbsp;&nbsp;&nbsp;&nbsp;direcciones=incoming;              &nbsp;&nbsp;&nbsp;&nbsp;// Se guarda la cadena leida<br>
-                    &nbsp;&nbsp;&nbsp;&nbsp;pulse();                           &nbsp;&nbsp;&nbsp;&nbsp;// Se ejecutan los movimientos<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if(Serial1.available()>0){           &nbsp;&nbsp;&nbsp;&nbsp;// Si hay conexiones entrantes<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;incoming = Serial1.readString();   &nbsp;&nbsp;&nbsp;&nbsp;// Se lee una linea<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;direcciones=incoming;              &nbsp;&nbsp;&nbsp;&nbsp;// Se guarda la cadena leida<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;pulse();                           &nbsp;&nbsp;&nbsp;&nbsp;// Se ejecutan los movimientos<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
                 }<br>
-                }<br>
+                //---------------------------------------------------------------------------------------------<br>
+                <br>
                 void pwm(float pwm0, float pwm1, float pwm2, float pwm3){&nbsp;&nbsp;&nbsp;&nbsp;// Funcion para enviar pwm a motores<br>
-                float out[4]={pwm0, pwm1, pwm2, pwm3};&nbsp;&nbsp;&nbsp;&nbsp;// Se toman las entradas de la funcion<br>
-                for(int i=0;i<4;i++){              &nbsp;&nbsp;&nbsp;&nbsp;// para cada pin pwm<br>
-                    &nbsp;&nbsp;&nbsp;&nbsp;analogWrite(motores[i], out[i]); &nbsp;&nbsp;&nbsp;&nbsp;// Enviar el pulso de ancho=out[i] a motor[i]<br>
-                }<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;float out[4]={pwm0, pwm1, pwm2, pwm3};&nbsp;&nbsp;&nbsp;&nbsp;// Se toman las entradas de la funcion<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for(int i=0;i<4;i++){              &nbsp;&nbsp;&nbsp;&nbsp;// para cada pin pwm<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;analogWrite(motores[i], out[i]); &nbsp;&nbsp;&nbsp;&nbsp;// Enviar el pulso de ancho=out[i] a motor[i]<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
                 }<br>
                 void off(){                          &nbsp;&nbsp;&nbsp;&nbsp;// Funcion para apagar los motores<br>
-                for(int i=0;i<4;i++){              &nbsp;&nbsp;&nbsp;&nbsp;// para cada pin pwm<br>
-                    &nbsp;&nbsp;&nbsp;&nbsp;analogWrite(motores[i],0);       &nbsp;&nbsp;&nbsp;&nbsp;// Enviar pwm=0<br>
-                }<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for(int i=0;i<4;i++){              &nbsp;&nbsp;&nbsp;&nbsp;// para cada pin pwm<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;analogWrite(motores[i],0);       &nbsp;&nbsp;&nbsp;&nbsp;// Enviar pwm=0<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
                 }<br>
                 void encoders(){                     &nbsp;&nbsp;&nbsp;&nbsp;// Funcion para leer los encoders<br>
-                for(int t=0;t<4;t++){              &nbsp;&nbsp;&nbsp;&nbsp;// Para cada encoder<br>
-                    &nbsp;&nbsp;&nbsp;&nbsp;est[t]=digitalRead(enc[t]);      &nbsp;&nbsp;&nbsp;&nbsp;// Leer el estadoa ctual del encoder<br>
-                    &nbsp;&nbsp;&nbsp;&nbsp;if(est[t]!=last[t]){             &nbsp;&nbsp;&nbsp;&nbsp;// Si es diferente al estado anterior<br>
-                    &nbsp;&nbsp;&nbsp;&nbsp;pulses[t]+=1;                  &nbsp;&nbsp;&nbsp;&nbsp;// Aumentar el contador del encoder<br>
-                    &nbsp;&nbsp;&nbsp;&nbsp;last[t]=est[t];                &nbsp;&nbsp;&nbsp;&nbsp;// El edo. actual sera el edo. anterior<br>
-                    &nbsp;&nbsp;&nbsp;&nbsp;}<br>
-                }<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for(int t=0;t<4;t++){              &nbsp;&nbsp;&nbsp;&nbsp;// Para cada encoder<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;est[t]=digitalRead(enc[t]);      &nbsp;&nbsp;&nbsp;&nbsp;// Leer el estadoa ctual del encoder<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if(est[t]!=last[t]){             &nbsp;&nbsp;&nbsp;&nbsp;// Si es diferente al estado anterior<br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;pulses[t]+=1;                  &nbsp;&nbsp;&nbsp;&nbsp;// Aumentar el contador del encoder<br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;last[t]=est[t];                &nbsp;&nbsp;&nbsp;&nbsp;// El edo. actual sera el edo. anterior<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
                 }<br>
                 <br>
                 void pid(int x0, int x1, int x2, int x3){        &nbsp;&nbsp;&nbsp;&nbsp;// Funcion de control PID<br>
@@ -120,27 +124,27 @@
                     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dt=dt/1000;                                  &nbsp;&nbsp;&nbsp;&nbsp;// Transforma dt a segundos<br>
                     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for(int i=0; i<4;i++){                       &nbsp;&nbsp;&nbsp;&nbsp;// Para cada pwm<br>
                         &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if(enabPID[i]==1){                         &nbsp;&nbsp;&nbsp;&nbsp;// Si el PID para el motor i esta habilitado<br>
-                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;pulsf[i]=pulses[i];                      &nbsp;&nbsp;&nbsp;&nbsp;// Obtener el numero de conteos actual<br>
-                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dpuls[i]=pulsf[i]-puls0[i];              &nbsp;&nbsp;&nbsp;&nbsp;// Obtener los conteos desde la ultima iteracion<br>
-                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;error[i]=want[i]-dpuls[i];               &nbsp;&nbsp;&nbsp;&nbsp;/* Restar los conteos realizados a los conteos <br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;pulsf[i]=pulses[i];                      &nbsp;&nbsp;&nbsp;&nbsp;// Obtener el numero de conteos actual<br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dpuls[i]=pulsf[i]-puls0[i];              &nbsp;&nbsp;&nbsp;&nbsp;// Obtener los conteos desde la ultima iteracion<br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;error[i]=want[i]-dpuls[i];               &nbsp;&nbsp;&nbsp;&nbsp;/* Restar los conteos realizados a los conteos <br>
                             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;deseados por tiempo de muestreo. */<br>
-                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;cumError[i] += (error[i]*dt);            // Integra los errores-> sum(error[i]*dt)<br>
-                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rateError[i] = (error[i]-lastError[i]);  // Derivar el error -> errorActual - errorAnterior <br>
-                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;pwms[i]=kp[i]*error[i]+ki[i]*cumError[i]+38.46*kd[i]*rateError[i];// PID<br>
-                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/*<br>
-                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;En la parte de kd*rateError se multiplica por<br>
-                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;38.46, porque es el resultado de 1/dt, ya que<br>
-                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;por errores en el ide de esta instalacion<br>
-                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;no se pudo escribir el calculo de la<br>
-                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;derivada del error directamente:<br>
-                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(error[i]-lastError[i])/dt<br>
-                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*/<br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;cumError[i] += (error[i]*dt);            // Integra los errores-> sum(error[i]*dt)<br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rateError[i] = (error[i]-lastError[i]);  // Derivar el error -> errorActual - errorAnterior <br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;pwms[i]=kp[i]*error[i]+ki[i]*cumError[i]+38.46*kd[i]*rateError[i];// PID<br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/*<br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;En la parte de kd*rateError se multiplica por<br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;38.46, porque es el resultado de 1/dt, ya que<br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;por errores en el ide de esta instalacion<br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;no se pudo escribir el calculo de la<br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;derivada del error directamente:<br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(error[i]-lastError[i])/dt<br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*/<br>
                         &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;lastError[i]=error[i];                   // Error actual como error anterior para la siguiente<br>
                         &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;puls0[i]=pulsf[i];                       // Pulsos finales como pulsos iniciales para la<br>
                         &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}                                          // Siguiente iteracion. <br>
-                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
-                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;t0=tf; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Tiempo actual sera el tiempo inicial<br>
-                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}                                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// de la siguiente iteracion<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;t0=tf; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Tiempo actual sera el tiempo inicial<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}                                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// de la siguiente iteracion<br>
                 }// Pines en alto, pines en bajo, tamaño de paso, movimiento a realizar, indice del movimiento a realizar<br>
                 <br>
                 void walk(byte Hi, byte Lo, int stp, int scond, char movment, int indx){&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Funcion para avanzar un nodo<br>
