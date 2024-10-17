@@ -7,18 +7,222 @@
         <meta name="description" content="my resume">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <link rel="stylesheet" href="">
+        <style>
+            @import url('https://fonts.googleapis.com/css2?family=Italiana&display=swap');
+            h1 {
+                font-family: "Italiana", sans-serif;
+                font-weight: 500;
+                font-style: normal;
+            }
+        </style>
     </head>
-    <body>
+    <body style="margin: 0;background-color: black;">
+        <h1 style="color:chartreuse;margin-top: 0;margin-bottom: 0;text-align: center;">Arduino Code at the end of this webpage</h1>
+
         <!--[if lt IE 7]>
             <p class="browsehappy">You are using an <strong>outdated</strong> browser. Please <a href="#">upgrade your browser</a> to improve your experience.</p>
         <![endif]-->
-        
         <iframe
-			width="100%"
-			height="1300px"
+            width="100%"
+            height="1300px"
             loading="lazy"
             title="PID control for omnidirectional robot"
-			src="./PID4.pdf"
-		></iframe>
+            src="./PID4.pdf"
+        ></iframe>
+        <div style="background-color: black;color: #61efff;">
+            <p>
+                /* Control PID para robot Omnidireccional<br>
+                Martin Carballo Flores<br>
+                02/sep/2019<br>
+                */<br>
+                // -------------------------------------------------------------------------------------------<br>
+                int enc[4]={31,33,35,37};   &nbsp;&nbsp;&nbsp;&nbsp;// Pines para canal A de los encoders<br>
+                float pulses[4]={0,0,0,0};  &nbsp;&nbsp;&nbsp;&nbsp;// Arreglo de contadores de encoders<br>
+                int R=0;                    &nbsp;&nbsp;&nbsp;&nbsp;// variable para tamaño de lado<br>
+                int est[4];                 &nbsp;&nbsp;&nbsp;&nbsp;// Arreglo de estados actuales de los encoders<br>
+                int last[4];                &nbsp;&nbsp;&nbsp;&nbsp;// Arreglo de estados anteriores de los encoders<br>
+                // -------------------------------------------------------------------------------------------<br>
+                float t0=0, tf=0, dt=0, ft;             &nbsp;&nbsp;&nbsp;&nbsp;// Variables de tiempo inicial, final y derivada<br>
+                float puls0[4]={0,0,0,0};               &nbsp;&nbsp;&nbsp;&nbsp;// Arreglo de contadores en t0 de encoders<br>
+                float pulsf[4]={0,0,0,0};               &nbsp;&nbsp;&nbsp;&nbsp;// Arreglo de contadores en tf de encoders<br>
+                float dpuls[4]={0,0,0,0};               &nbsp;&nbsp;&nbsp;&nbsp;// Arreglo de derivada de contadores obtenidos<br>
+                float kp[4] = {3, 3, 3, 3};             &nbsp;&nbsp;&nbsp;&nbsp;// + = mas rapidomenos preciso<br>
+                float ki[4] = {3.3, 2.7, 2.6, 2.7};     &nbsp;&nbsp;&nbsp;&nbsp;// + = mas rapido y ligeramente mayor oscilacion<br>
+                float kd[4] = {0.05, 0.05, 0.05, 0.04}; &nbsp;&nbsp;&nbsp;&nbsp;// + = mas lento y mas inestable<br>
+                float error[4]={0,0,0,0}, cumError[4]={0,0,0,0};     &nbsp;&nbsp;&nbsp;&nbsp;// Arreglo de error y de suma de error<br>
+                float rateError[4]={0,0,0,0}, lastError[4]={0,0,0,0};&nbsp;&nbsp;&nbsp;&nbsp;// Arreglo para derivar error<br>
+                //float want[4]={33, 32, 31.5, 32};//*/                &nbsp;&nbsp;&nbsp;&nbsp;// contadores deseados por tiempo de muestreo<br>
+                float want[4]={41.8, 41.3, 41.6, 41.7};// &nbsp;&nbsp;&nbsp;&nbsp;*/ &nbsp;&nbsp;&nbsp;&nbsp;[2]<br>
+                //--------------------------------------------------------------------------------------------<br>
+                int motores[4]={4,5,6,7};         &nbsp;&nbsp;&nbsp;&nbsp;// pines de pwm<br>
+                //float pwms[4]={86,56,52,58};    &nbsp;&nbsp;&nbsp;&nbsp;// anchos a las que los motores tienen aprox. la msima vel.<br>
+                float pwms[4]={0,0,0,0};          &nbsp;&nbsp;&nbsp;&nbsp;// Anchos iniciales<br>
+                String incoming;                  &nbsp;&nbsp;&nbsp;&nbsp;// Variable para recibir los movimientos a realizar<br>
+                String direcciones;               &nbsp;&nbsp;&nbsp;&nbsp;// Variable para almacenar los movimientos a realizar<br>
+                void setup(){                     &nbsp;&nbsp;&nbsp;&nbsp;// FUncion de inicializacion<br>
+                Serial1.begin(9600);            &nbsp;&nbsp;&nbsp;&nbsp;// Velocidad de 9600 baudios para modulo BT en Serial1(RX19, TX18)<br>
+                DDRA |= B11111111;              &nbsp;&nbsp;&nbsp;&nbsp;// Configuracion de pines de direcion de motores como salidas<br>
+                /*<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;El comando de registros DDRx, donde x es el registro a manipular, configura los pines como<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;salidas si los bits se ponen en 1 y como entradas si se ponen en 0, los valores iniciales<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;son 0, por lo tanto no es necesario configurar entradas. Al colocar los 1 y 0 se inicia<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;colocando B. El orden de los bits en AVRATmega2560 es [0,1,2,3,4,5,6,7]. Se debe<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;revisar a que pines de arduino corresponden los pines del micro que se quieran configurar.<br>
+                */<br>
+                for(int i=0;i<4; i++){         &nbsp;&nbsp;&nbsp;&nbsp;// Para cada sensor<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;est[i]=digitalRead(enc[i]);  &nbsp;&nbsp;&nbsp;&nbsp;// Se lee el estado actual de los motores<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;last[i]=est[i];              &nbsp;&nbsp;&nbsp;&nbsp;// Las lecturas se establecen como el estado anterior<br>
+                }<br>
+                DDRG |= B00000100;             &nbsp;&nbsp;&nbsp;&nbsp;// -Configuracion de los pines pwm<br>
+                DDRE |= B00010000;             &nbsp;&nbsp;&nbsp;&nbsp;// PG5, PE3, PH3 y PH4 como salidas,<br>
+                DDRH |= B00011000;             &nbsp;&nbsp;&nbsp;&nbsp;// es decir pines 4,5,6,7 de arduino.<br>
+                PORTG &= B11111011;            &nbsp;&nbsp;&nbsp;&nbsp;// -Poner en bajolos pines<br>
+                PORTE &= B11101111;            &nbsp;&nbsp;&nbsp;&nbsp;// 4,5,6,7 de arduino, es decir<br>
+                PORTH &= B11100111;            &nbsp;&nbsp;&nbsp;&nbsp;// PG5, PE3, PH3, PH4 del micro.<br>
+                /*<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;El comando de registros PORTx, donde x es el registro a manipular, se usa para poner<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;los pines en 1 o 0 usando compuerta and u or<br>
+                */<br>
+                }<br>
+                void loop(){                           &nbsp;&nbsp;&nbsp;&nbsp;// Funcion principal<br>
+                if(Serial1.available()>0){           &nbsp;&nbsp;&nbsp;&nbsp;// Si hay conexiones entrantes<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;incoming = Serial1.readString();   &nbsp;&nbsp;&nbsp;&nbsp;// Se lee una linea<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;direcciones=incoming;              &nbsp;&nbsp;&nbsp;&nbsp;// Se guarda la cadena leida<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;pulse();                           &nbsp;&nbsp;&nbsp;&nbsp;// Se ejecutan los movimientos<br>
+                }<br>
+                }<br>
+                void pwm(float pwm0, float pwm1, float pwm2, float pwm3){&nbsp;&nbsp;&nbsp;&nbsp;// Funcion para enviar pwm a motores<br>
+                float out[4]={pwm0, pwm1, pwm2, pwm3};&nbsp;&nbsp;&nbsp;&nbsp;// Se toman las entradas de la funcion<br>
+                for(int i=0;i<4;i++){              &nbsp;&nbsp;&nbsp;&nbsp;// para cada pin pwm<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;analogWrite(motores[i], out[i]); &nbsp;&nbsp;&nbsp;&nbsp;// Enviar el pulso de ancho=out[i] a motor[i]<br>
+                }<br>
+                }<br>
+                void off(){                          &nbsp;&nbsp;&nbsp;&nbsp;// Funcion para apagar los motores<br>
+                for(int i=0;i<4;i++){              &nbsp;&nbsp;&nbsp;&nbsp;// para cada pin pwm<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;analogWrite(motores[i],0);       &nbsp;&nbsp;&nbsp;&nbsp;// Enviar pwm=0<br>
+                }<br>
+                }<br>
+                void encoders(){                     &nbsp;&nbsp;&nbsp;&nbsp;// Funcion para leer los encoders<br>
+                for(int t=0;t<4;t++){              &nbsp;&nbsp;&nbsp;&nbsp;// Para cada encoder<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;est[t]=digitalRead(enc[t]);      &nbsp;&nbsp;&nbsp;&nbsp;// Leer el estadoa ctual del encoder<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;if(est[t]!=last[t]){             &nbsp;&nbsp;&nbsp;&nbsp;// Si es diferente al estado anterior<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;pulses[t]+=1;                  &nbsp;&nbsp;&nbsp;&nbsp;// Aumentar el contador del encoder<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;last[t]=est[t];                &nbsp;&nbsp;&nbsp;&nbsp;// El edo. actual sera el edo. anterior<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;}<br>
+                }<br>
+                }<br>
+                <br>
+                void pid(int x0, int x1, int x2, int x3){        &nbsp;&nbsp;&nbsp;&nbsp;// Funcion de control PID<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;int enabPID[4]={x0, x1, x2, x3};               &nbsp;&nbsp;&nbsp;&nbsp;// Guardar la configuracion de PID<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;tf=millis();                                   &nbsp;&nbsp;&nbsp;&nbsp;// Tomar el tiempo actual<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;dt=tf-t0;                                      &nbsp;&nbsp;&nbsp;&nbsp;// Obtener la derivada del tiempo<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;if(dt>25){                                     &nbsp;&nbsp;&nbsp;&nbsp;// Si la derivada del tiempo es mayor a 25 milli<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dt=dt/1000;                                  &nbsp;&nbsp;&nbsp;&nbsp;// Transforma dt a segundos<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for(int i=0; i<4;i++){                       &nbsp;&nbsp;&nbsp;&nbsp;// Para cada pwm<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if(enabPID[i]==1){                         &nbsp;&nbsp;&nbsp;&nbsp;// Si el PID para el motor i esta habilitado<br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;pulsf[i]=pulses[i];                      &nbsp;&nbsp;&nbsp;&nbsp;// Obtener el numero de conteos actual<br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dpuls[i]=pulsf[i]-puls0[i];              &nbsp;&nbsp;&nbsp;&nbsp;// Obtener los conteos desde la ultima iteracion<br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;error[i]=want[i]-dpuls[i];               &nbsp;&nbsp;&nbsp;&nbsp;/* Restar los conteos realizados a los conteos <br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;deseados por tiempo de muestreo. */<br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;cumError[i] += (error[i]*dt);            // Integra los errores-> sum(error[i]*dt)<br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rateError[i] = (error[i]-lastError[i]);  // Derivar el error -> errorActual - errorAnterior <br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;pwms[i]=kp[i]*error[i]+ki[i]*cumError[i]+38.46*kd[i]*rateError[i];// PID<br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/*<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;En la parte de kd*rateError se multiplica por<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;38.46, porque es el resultado de 1/dt, ya que<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;por errores en el ide de esta instalacion<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;no se pudo escribir el calculo de la<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;derivada del error directamente:<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(error[i]-lastError[i])/dt<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*/<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;lastError[i]=error[i];                   // Error actual como error anterior para la siguiente<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;puls0[i]=pulsf[i];                       // Pulsos finales como pulsos iniciales para la<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}                                          // Siguiente iteracion. <br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;t0=tf; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Tiempo actual sera el tiempo inicial<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}                                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// de la siguiente iteracion<br>
+                }// Pines en alto, pines en bajo, tamaño de paso, movimiento a realizar, indice del movimiento a realizar<br>
+                <br>
+                void walk(byte Hi, byte Lo, int stp, int scond, char movment, int indx){&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Funcion para avanzar un nodo<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;t0=millis();                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Guardar el tiempo inicial para pid<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for(int i=0;i<4;i++){       &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Para cada conteo de sensores<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;puls0[i]=pulses[i];       &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Guardar el conteo actual como contador inicial para pid<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}// */<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;stepr(stp, Hi, Lo, movment, indx);&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// avanzar<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;stepr(scond, Hi, Lo, movment, indx);<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if(direcciones[indx+1]!=movment){&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Si el siguiente moviminto sera en una direccion diferente<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;off();                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Apagar los motores<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for(int i=0;i<4;i++){     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Para cada contador de sensores<br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;pulses[i]=0;            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Se reinician estos valores para evitar<br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;cumError[i]=0;          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// errores en el PID edespues de haber<br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;lastError[i]=0;         &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// detenido el robot por # segundos.<br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;while(R<500){             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Retardo para detener al robot y evitar derrapes *<br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;delay(1);               &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Retardo para alcanzar segundos detenido<br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;R+=1;                   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Aumentar el contador del retardo<br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;R=0;                      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Reinicial el contador para usarse en<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}                           &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// el siguiente control de velocidad<br>
+                }<br>
+                void stepr(int stepr12, byte pinsh, byte pinsl, char dir, int plce){<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;while(R<stepr12){                                     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Por <stp> ciclos<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;PORTA |= pinsh;                                     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Poner pines en alto usando or y poner pines en<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;PORTA |= pinsh;                                     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Poner pines en alto usando or y poner pines en<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;PORTA &= pinsl;                                     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// bajo usando and, para configurar el sentido del motor<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;pwm(pwms[0], pwms[1], pwms[2], pwms[3]);            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Enviar pulsos<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;encoders();                                         &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Leer los encoders<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if((dir=='w')||(dir=='x')||(dir=='d')||(dir=='a')){ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// -Si se moveran todas las ruedas<br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;pid(1,1,1,1);                                     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//  pid para todos los motores.<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}else if((dir=='q')||(dir=='c')){                   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// -Si solo se moveran dos ruedas<br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;pid(1,0,0,1);                                     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//  pid para dos motores.<br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}else if((dir=='e')||(dir=='z')){                   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// -Si solo se moveran dos ruedas<br>
+                                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;pid(0,1,1,0);                                     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//  pid para dos motores.<br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;R+=1;                                               &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Aumenta el contador del ciclo while<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;R=0;                                                  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// el siguiente control de velocidad<br>
+                }<br>
+                <br>
+                void pulse(){                                               &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Funcion para determinar el movimiento que se hara<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int L=direcciones.length();                               &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Almacenar la longitud de la cadena recibida<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ft=millis();<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for(int j=0;j< L;j++){                                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Para cada elemento de la cadena<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if(direcciones[j]=='x'){                                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Si el caracter j corresponde a "atras"<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//  Pines en alto, Pines en bajo, tamaño de ressitencia, movimiento a realizar, indice del movimiento a realizar<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;walk(B10101010, B10101010, 30000, 11400, direcciones[j], j); &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Avanzar al siguiente nodo ---- 30000, 14000<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}else if(direcciones[j]=='d'){                          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Si el caracter j corresponde a &lt;derecha&gt;<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;walk(B10010110, B10010110, 30000, 11400, direcciones[j], j); &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Avanzar al siguiente nodo<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}else if(direcciones[j]=='a'){                          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Si el caracter j corresponde a &lt;izquierda&gt;<br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;walk(B01101001, B01101001, 30000, 11400, direcciones[j], j); &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Avanzar al siguiente nodo<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}else if(direcciones[j]=='w'){                          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Si el caracter j corresponde a &lt;adelante&gt;<br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;walk(B01010101, B01010101, 30000, 11400, direcciones[j], j); &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Avanzar al siguiente nodo<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}else if(direcciones[j]=='s'){                          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Si el caracter j corresponde a &lt;girar&gt;<br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;walk(B01100110, B01100110, 30000, 30000, direcciones[j], j); &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Girar Hacia otro nodo(pendiente)*<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}else if(direcciones[j]=='q'){                          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Si el caracter j corresponde a &lt;diagonal frente-izquierda&gt;<br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;walk(B01000001, B01000001, 30000, 14000, direcciones[j], j); &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Avanzar al siguiente nodo<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}else if(direcciones[j]=='c'){                          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Si el caracter j corresponde a &lt;diagonal atras-derecha&gt;<br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;walk(B10000010, B10000010, 30000, 14000, direcciones[j], j); &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Avanzar al siguiente nodo<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}else if(direcciones[j]=='e'){                          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Si el caracter j corresponde a &lt;diagonal frente-derecha><br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;walk(B00010100, B00010100, 30000, 14000, direcciones[j], j); &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Avanzar al siguiente nodo<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}else if(direcciones[j]=='z'){                          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Si el caracter j corresponde a &lt;diagonal atras-izquierda><br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;walk(B00101000, B00101000, 30000, 14000, direcciones[j], j); &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Avanzar al siguiente nodo<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//ft=millis()-ft;<br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//Serial.println(ft);     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// <br>
+                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for(int i=0;i<4;i++){     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Al final, para cada contador de sensores<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Serial1.print(dpuls[i]);// Imprime los contadores por tiempo de muestreo<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Serial1.print("   ");            <br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if(i==3){               &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Si ya se imprimio el ultimo encoder<br>
+                            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Serial1.println(" "); &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Se cambia de linea<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}//*/<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;pulses[i]=0;            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Se reinicia para el siguiente seguimiento<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;cumError[i]=0;          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Se reinicial para el siguiente seguimiento<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;lastError[i]=0;         &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Se reinicia para el siguiente seguimiento<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;off();                    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Se detienen los motores al final de la ruta<br>
+                }<br>
+            </p>
+        </div>
     </body>
 </html>
