@@ -4,20 +4,29 @@
         <meta charset="utf-8">
         <meta http-equiv="X-UA-Compatible" content="IE=edge">
         <title>PID control</title>
-        <meta name="description" content="PID control implemented on arduino">
+        <meta name="description" content="control PID en arduino Mega">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <link rel="stylesheet" href="">
         <style>
             @import url('https://fonts.googleapis.com/css2?family=Italiana&display=swap');
+            @font-face {
+                font-family: code;
+                src: url('./fonts/freemono/FreeMonoBold.ttf');
+            }
             h1 {
-                font-family: "Italiana", sans-serif;
+                font-family:code; /*"Italiana", sans-serif;*/
                 font-weight: 500;
                 font-style: normal;
+            }
+            .code{
+                font-family: code;
+                background-color: black;
+                color: #61efff;
             }
         </style>
     </head>
     <body style="margin: 0;background-color: black;">
-        <h1 style="color:#61efff;margin-top: 0;margin-bottom: 0;text-align: center;">&lt;-- --- Codigo Arduino al final, despues del pdf --- --&gt;</h1>
+        <h1 style="color:seagreen;margin-top: 0;margin-bottom: 0;text-align: center;">&lt;-- Codigo de Arduino despues del pdf, al final --&gt;</h1>
 
         <!--[if lt IE 7]>
             <p class="browsehappy">You are using an <strong>outdated</strong> browser. Please <a href="#">upgrade your browser</a> to improve your experience.</p>
@@ -29,7 +38,7 @@
             title="PID control for omnidirectional robot"
             src="./PID4.pdf"
         ></iframe>
-        <div style="background-color: black;color: #61efff;">
+        <div class="code">
             <p>
                 /* Control PID para robot Omnidireccional<br>
                 Martin Carballo Flores<br>
